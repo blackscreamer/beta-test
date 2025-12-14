@@ -33,6 +33,16 @@
 
     .line { white-space: pre-wrap; }
 
+    .cursor::after {
+      content: '█';
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%,50% { opacity: 1; }
+      51%,100% { opacity: 0; }
+    }
+
     /* VS Code–like syntax colors */
     .keyword { color: #569cd6; }
     .string { color: #ce9178; }
@@ -94,6 +104,7 @@ let charIndex = 0;
 function typeLine() {
   if (lineIndex >= codeLines.length) {
     choices.style.display = 'block';
+    document.addEventListener('keydown', keyHandler);
     return;
   }
 
@@ -110,24 +121,33 @@ function typeLine() {
   const lineDiv = output.children[lineIndex];
 
   if (charIndex < text.length) {
+    lineDiv.classList.add('cursor');
     lineDiv.textContent += text.charAt(charIndex);
     charIndex++;
     setTimeout(typeLine, 35);
   } else {
-    lineDiv.innerHTML = rawLine;
+    lineDiv.innerHTML = rawLine; // Remove prompt prefix for all lines
+    lineDiv.classList.remove('cursor');
     charIndex = 0;
     lineIndex++;
     setTimeout(typeLine, 250);
   }
 }
 
+function keyHandler(e) {
+  if (e.key.toLowerCase() === 'y') answerYes();
+  if (e.key.toLowerCase() === 'n') answerNo();
+}
+
 function answerYes() {
-  output.innerHTML += '\n\n> git commit successful ❤️';
+  output.innerHTML += '\n\n> git commit successful ❤️\n> status: happily deployed';
+  document.removeEventListener('keydown', keyHandler);
   choices.style.display = 'none';
 }
 
 function answerNo() {
-  output.innerHTML += '\n\n> Process still running... ☺️';
+  output.innerHTML += '\n\n> No worries. keepTalking() still running… ☺️';
+  document.removeEventListener('keydown', keyHandler);
   choices.style.display = 'none';
 }
 
