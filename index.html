@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proposal-Terminal-Script</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /*
-         * -----------------
-         * GLOBAL STYLES (Includes CSS Variables)
-         * -----------------
-         */
         :root {
             --color-background-primary: #1e1e1e;
             --color-terminal-bg: #0c0c0c;
@@ -19,6 +16,7 @@
             --color-syntax-string: #ce9178;
             --color-syntax-comment: #6a9955;
             --color-syntax-function: #dcdcaa;
+            --color-syntax-variable: #9cdcfe;
         }
 
         body {
@@ -33,21 +31,18 @@
             overflow: hidden;
         }
 
-        /*
-         * -----------------
-         * TERMINAL STYLES
-         * -----------------
-         */
         .terminal {
             background: var(--color-terminal-bg);
             border-radius: 8px;
             width: 90%;
             max-width: 760px;
             padding: 20px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
             max-height: 90vh; 
             display: flex;
             flex-direction: column;
+            position: relative;
+            border: 1px solid #333;
         }
 
         .titlebar {
@@ -55,28 +50,43 @@
             margin-bottom: 12px;
             font-size: 14px;
             user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
         }
+
+        .dots { display: flex; gap: 6px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background-color: #ff5f56; }
+        .yellow { background-color: #ffbd2e; }
+        .green { background-color: #27c93f; }
 
         #output {
             overflow-y: auto; 
             flex-grow: 1;
             padding-right: 5px;
+            font-size: 1.05em;
         }
+
+        #output::-webkit-scrollbar { width: 8px; }
+        #output::-webkit-scrollbar-track { background: var(--color-terminal-bg); }
+        #output::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
         .line {
             white-space: pre-wrap; 
-            margin-bottom: 6px; 
-            line-height: 1.4;
+            margin-bottom: 8px; 
+            line-height: 1.5;
+            /* Subtle glow effect */
+            text-shadow: 0 0 3px rgba(212, 212, 212, 0.3);
         }
         
-        /*
-         * -----------------
-         * TYPING & CURSOR
-         * -----------------
-         */
         .cursor::after {
             content: '█';
             animation: blink 1s infinite;
+            color: var(--color-text-default);
+            margin-left: 4px;
         }
 
         @keyframes blink {
@@ -84,21 +94,13 @@
             51%, 100% { opacity: 0; }
         }
 
-        /*
-         * -----------------
-         * SYNTAX COLORS
-         * -----------------
-         */
-        .keyword { color: var(--color-syntax-keyword); }
-        .string { color: var(--color-syntax-string); }
-        .comment { color: var(--color-syntax-comment); }
-        .function { color: var(--color-syntax-function); }
+        /* Syntax Glows */
+        .keyword { color: var(--color-syntax-keyword); text-shadow: 0 0 5px rgba(86, 156, 214, 0.4); }
+        .string { color: var(--color-syntax-string); text-shadow: 0 0 5px rgba(206, 145, 120, 0.4); }
+        .comment { color: var(--color-syntax-comment); text-shadow: 0 0 5px rgba(106, 153, 85, 0.4); }
+        .function { color: var(--color-syntax-function); text-shadow: 0 0 5px rgba(220, 220, 170, 0.4); }
+        .variable { color: var(--color-syntax-variable); }
 
-        /*
-         * -----------------
-         * BUTTONS & CONTROLS
-         * -----------------
-         */
         .buttons {
             margin-top: 20px;
             padding-top: 10px;
@@ -106,7 +108,8 @@
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
-            min-height: 36px;
+            min-height: 40px;
+            align-items: center;
         }
 
         button {
@@ -118,32 +121,48 @@
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.2s ease-in-out;
-            font-size: 1em;
+            font-size: 0.95em;
         }
 
         button:hover:not(:disabled) { 
             background: var(--color-text-default);
             color: var(--color-terminal-bg);
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
         }
 
-        button:active:not(:disabled) {
-            transform: scale(0.98);
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled { opacity: 0.3; cursor: default; pointer-events: none; border-color: #555; }
+
+        #skip-btn {
+            font-size: 11px;
+            padding: 4px 8px;
+            opacity: 0.6;
+            background: #333;
+            border: none;
+            display: none; 
         }
-        
-        /* Disabled Button Style (for spam prevention) */
-        button:disabled {
-            opacity: 0.5; 
-            cursor: default; 
-            pointer-events: none;
+
+        .btn-green {
+            border-color: var(--color-syntax-comment);
+            color: var(--color-syntax-comment);
         }
-        
-        /* Removed all Firework CSS styles */
+        .btn-green:hover:not(:disabled) {
+            background: var(--color-syntax-comment);
+            color: var(--color-terminal-bg);
+        }
     </style>
 </head>
 <body>
     <div class="terminal">
-        <div class="titlebar">hello hello pillow expert</div>
+        <div class="titlebar">
+            <div class="dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <span>usr/bin/pillow.sh</span>
+            <button id="skip-btn">Skip Typing</button>
+        </div>
         <div id="output"></div> 
         <div class="buttons" id="controls"></div>
     </div>
@@ -152,38 +171,61 @@
         (function() {
             const output = document.getElementById('output');
             const controls = document.getElementById('controls');
+            const skipBtn = document.getElementById('skip-btn');
 
-            // Timing variables
-            const TYPE_SPEED_MS = 65; // Slower Typing Speed
-            const LINE_DELAY_MS = 250; 
-            // Removed POPPER_DURATION_MS
+            const TYPE_SPEED_MS = 60; 
+            const LINE_DELAY_MS = 300; 
 
             let queue = [];
             let isTyping = false; 
+            let currentTimeout = null;
+            let currentDiv = null;
+            let currentLineData = null; 
 
-            // --- Control and State Management ---
-
-            /** Enables or disables all buttons (Spam Prevention) */
             function setControlsState(enabled) {
                 controls.querySelectorAll('button').forEach(btn => {
                     btn.disabled = !enabled;
                 });
+                skipBtn.style.display = enabled ? 'none' : 'block';
             }
 
-            function clearButtons() { 
-                controls.innerHTML = ''; 
-            }
+            function clearButtons() { controls.innerHTML = ''; }
             
-            function addButton(label, action) { 
+            function addButton(label, action, className = '') { 
                 const btn = document.createElement('button'); 
                 btn.textContent = label; 
+                if(className) btn.classList.add(className);
                 btn.addEventListener('click', action); 
                 controls.appendChild(btn); 
-                // Ensure new buttons respect the current typing state
                 btn.disabled = isTyping; 
             }
             
-            // --- Typing Queue Logic ---
+            skipBtn.addEventListener('click', () => {
+                if (!isTyping) return;
+                clearTimeout(currentTimeout);
+                
+                if (currentDiv && currentLineData) {
+                    if (currentLineData.isHTML) {
+                        currentDiv.innerHTML = currentLineData.text;
+                    } else {
+                        currentDiv.textContent = currentLineData.text;
+                    }
+                    currentDiv.classList.remove('cursor');
+                }
+
+                while (queue.length > 0) {
+                    const { text, isHTML } = queue.shift();
+                    const div = document.createElement('div');
+                    div.className = 'line';
+                    if (isHTML) { div.innerHTML = text; } 
+                    else { div.textContent = text; }
+                    output.appendChild(div);
+                }
+
+                isTyping = false;
+                setControlsState(true);
+                output.scrollTop = output.scrollHeight;
+            });
 
             function enqueue(text, isHTML = false) {
                 queue.push({ text, isHTML });
@@ -193,114 +235,128 @@
             function processQueue() {
                 if (queue.length === 0) {
                     isTyping = false;
-                    setControlsState(true); // Enable buttons when idle
+                    setControlsState(true); 
                     return;
                 }
 
                 isTyping = true;
-                setControlsState(false); // Disable buttons while typing
+                setControlsState(false); 
 
-                const { text, isHTML } = queue.shift();
+                const item = queue.shift();
+                currentLineData = item;
+                const { text, isHTML } = item;
+
                 const div = document.createElement('div');
                 div.className = 'line cursor';
                 output.appendChild(div);
-                
+                currentDiv = div;
                 output.scrollTop = output.scrollHeight;
 
-                let i = 0;
-                
-                const plainText = isHTML ? (() => { 
-                    const t = document.createElement('div'); 
-                    t.innerHTML = text; 
-                    return t.textContent; 
-                })() : text;
+                if (isHTML) {
+                    currentTimeout = setTimeout(() => {
+                        div.innerHTML = text;
+                        div.classList.remove('cursor');
+                        currentTimeout = setTimeout(processQueue, LINE_DELAY_MS);
+                        output.scrollTop = output.scrollHeight;
+                    }, TYPE_SPEED_MS);
+                    return;
+                }
 
+                let i = 0;
                 function type() {
-                    if (i < plainText.length) { 
-                        div.textContent += plainText.charAt(i++); 
-                        setTimeout(type, TYPE_SPEED_MS); 
+                    if (i < text.length) { 
+                        div.textContent += text.charAt(i++); 
+                        currentTimeout = setTimeout(type, TYPE_SPEED_MS); 
                     } else { 
                         div.classList.remove('cursor');
-                        if (isHTML) {
-                            div.innerHTML = text;
-                        }
                         output.scrollTop = output.scrollHeight;
-                        setTimeout(processQueue, LINE_DELAY_MS); 
+                        currentTimeout = setTimeout(processQueue, LINE_DELAY_MS); 
                     }
                 }
-                
                 type();
             }
-           
-
-            // --- Scene Functions ---
-
+            
             function start() {
                 clearButtons();
-                enqueue('TEST TEST TEST\n1 2 1 2\nwell I guess it\'s working all fine ( hmmm i guess )');
-                enqueue('Hey Mina, I built this specifically for you... hope you\'re ready.');
-                addButton('Start', happyNewYear);
+                enqueue('Initializing connection...');
+                enqueue('Hmmmmmmmm, you must be wondering wth is this, right?');
+                enqueue('Don\'t worry, it won\'t take too long. Just press Start when you are READY!');
+                addButton('Start Sequence', happyNewYear);
             }
 
             function happyNewYear() {
                 clearButtons();
-                
-                enqueue('Mina, I\'ll keep this short to spare you my yapping! I like you, and I’ve reached a point where I can\'t hide how much you mean to me.');
-                enqueue('I\'d say you’ve become the foundation of my days. You are perfect to me; everything about our connection feels so special and natural.');
-                enqueue('Even with no obligation at all, I genuinely want to share my days with you and hear everything about yours.');
-                enqueue('On this day, I think it’s the perfect occasion for us to start the new year together. Let’s write the code for "us" — line by line, laughing when it’s green, and sticking together as one when it’s all red, debugging our way through until it\'s green again.');
-                enqueue('I’ll make the initiative of starting the first lines myself...');
-
-                addButton('Start the code', startCoding);
+                enqueue('First of all: HAPPYYYYYYYY NEW YEAR CUPCAKE! 🧁✨');
+                enqueue('I wish you a year full of successful coding and fewer bugs 😂.');
+                enqueue('Pleine de joie, de bonheur, and so on.');
+                enqueue(' ');
+                enqueue('I guess it is pretty obvious by now that I LIIIIIKE you and you mean a lot to me.');
+                enqueue('My days somehow feel incomplete without thinking of you or waiting to hear from you.');
+                enqueue(' ');
+                enqueue('Things have been doing great since the start with a natural flowing conversation of us getting comfortable and trusty with each other.');
+                enqueue('So I thought this would be the perfect moment.');
+                enqueue('to ask you if you’d like to be my lady, and let me be your man.');
+                enqueue('To start the new year together like writing a new code for "Us".');
+                enqueue('Line by line, enjoying when it\'s green, and sticking together when it\'s red debugging until it turns green again.');
+                enqueue(' ');
+                enqueue('Since it\'s code, better start it this way!');              
+                addButton('Execute Proposal.js', startCoding);
             }
 
             function startCoding() {
                 clearButtons();
                 const code = [
-                    '<span class="keyword">const</span> me el mi3mari = <span class="string">"Ready"</span>;',
-                    '<span class="keyword">let</span> you pillow expert = <span class="string">"?"</span>; <span class="comment">// waiting for your input…</span>',
+                    '<span class="keyword">const</span> <span class="variable">me</span> = <span class="string">"el_mi3mari"</span>;',
+                    '<span class="keyword">let</span> <span class="variable">you</span> = <span class="string">"pillow_expert"</span>; <span class="comment">// waiting for your input...</span>',
                     '', 
                     '<span class="keyword">if</span> (you === <span class="string">"Ready"</span>) {',
-                    '  git.<span class="function">checkout</span>(<span class="string">"us-branch"</span>);',
-                    '  git.<span class="function">merge</span>(me, you);',
-                    '  git.<span class="function">commit</span>(<span class="string">"Initial commit: Us v1.0 🚀"</span>);',
+                    '  git.<span class="function">checkout</span>(<span class="string">"us-branch"</span>);',
+                    '  git.<span class="function">merge</span>(me, you);',
+                    '  git.<span class="function">commit</span>(<span class="string">"Initial commit: Us v1.0 🚀"</span>);',
                     '} <span class="keyword">else</span> {',
-                    '  <span class="comment">// no pressure, I’m not going anywhere</span>',
-                    '  <span class="function">keepTalking</span>();',
+                    '  <span class="comment">// no pressure, I’m not going anywhere</span>',
+                    '  <span class="function">keepTalking</span>();',
                     '}'
                 ];
                 code.forEach(line => enqueue(line, true));
-                
-                addButton('I AM IN', iamIn);
+                addButton('I AM IN', iamIn, 'btn-green');
                 addButton('Sorry!', sorry);
             }
 
             function iamIn() {
                 clearButtons();
-                
-                // Final message is just enqueued without animation
-                enqueue('> git commit successful ❤️\nstatus: happily deployed', true);
-
-                // Buttons added directly without animation delay
+                var duration = 3 * 1000;
+                var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 999 };
+                function randomInOut(min, max) { return Math.random() * (max - min) + min; }
+                var interval = setInterval(function() {
+                    var timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    var particleCount = 60 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInOut(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInOut(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+                enqueue(' ');
+                enqueue('> git commit successful ❤️');
+                enqueue('> status: happily deployed to production');
                 addButton('Send answer to the dev', sendAnswer);
             }
 
             function sorry() {
                 clearButtons();
-                enqueue('No worries. keepTalking()'); 
+                enqueue(' ');
+                enqueue('No worries. <span class="function">keepTalking</span>();', true); 
                 addButton('Send answer to the dev', sendAnswer);
             }
 
             function sendAnswer() {
                 clearButtons();
-                enqueue('Oops, there is an error with the network. Please submit your answer to the dev manually in the DMs.');
+                enqueue(' ');
+                enqueue('<span class="keyword">Error 500</span>: Network overload due to high excitement levels.', true);
+                enqueue('Please submit your answer to the dev manually in the DMs. 😉');
             }
 
-
-            // --- Initialization ---
-            
-            addButton('Start', start);
-
+            addButton('Run Script', start);
         })(); 
     </script>
 </body>
