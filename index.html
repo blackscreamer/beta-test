@@ -26,6 +26,8 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            /* Fix for mobile scroll bounce */
+            height: 100dvh; 
             margin: 0;
             color: var(--color-text-default);
             overflow: hidden;
@@ -37,12 +39,19 @@
             width: 90%;
             max-width: 760px;
             padding: 20px;
+            box-sizing: border-box; /* Ensures padding doesn't add to width */
             box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
-            max-height: 90vh; 
+            
+            /* --- FIX STARTS HERE --- */
             display: flex;
             flex-direction: column;
             position: relative;
             border: 1px solid #333;
+            
+            /* Use safe area for mobile */
+            max-height: 85vh; 
+            max-height: 85dvh; 
+            /* --- FIX ENDS HERE --- */
         }
 
         .titlebar {
@@ -55,6 +64,7 @@
             align-items: center;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
+            flex-shrink: 0; /* Prevents titlebar from shrinking */
         }
 
         .dots { display: flex; gap: 6px; }
@@ -68,6 +78,11 @@
             flex-grow: 1;
             padding-right: 5px;
             font-size: 1.05em;
+            
+            /* --- CRITICAL FIX --- */
+            /* Allows the div to shrink below its content size to fit flex container */
+            min-height: 0; 
+            /* -------------------- */
         }
 
         #output::-webkit-scrollbar { width: 8px; }
@@ -78,7 +93,6 @@
             white-space: pre-wrap; 
             margin-bottom: 8px; 
             line-height: 1.5;
-            /* Subtle glow effect */
             text-shadow: 0 0 3px rgba(212, 212, 212, 0.3);
         }
         
@@ -110,6 +124,7 @@
             flex-wrap: wrap;
             min-height: 40px;
             align-items: center;
+            flex-shrink: 0; /* Prevents buttons from shrinking/disappearing */
         }
 
         button {
@@ -267,6 +282,8 @@
                     if (i < text.length) { 
                         div.textContent += text.charAt(i++); 
                         currentTimeout = setTimeout(type, TYPE_SPEED_MS); 
+                        // Auto scroll to bottom while typing
+                        output.scrollTop = output.scrollHeight;
                     } else { 
                         div.classList.remove('cursor');
                         output.scrollTop = output.scrollHeight;
